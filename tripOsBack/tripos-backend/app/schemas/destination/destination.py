@@ -46,7 +46,14 @@ class DestinationCreate(BaseModel):
 
     average_daily_cost: Decimal | None = Field(
         default=None,
-        ge=0
+        ge=0,
+        description="Average daily cost in the destination's local currency.",
+    )
+
+    average_daily_cost_usd: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Curated average daily visitor budget in US dollars.",
     )
 
 

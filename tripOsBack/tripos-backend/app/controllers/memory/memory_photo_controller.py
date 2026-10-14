@@ -1,6 +1,9 @@
+import re
+
 from app.controllers.common.scoped_resource_controller import ScopedResourceController
 from app.models.memory.memory import Memory
 from app.models.memory.memory_photo import MemoryPhoto
+from app.services.memory_photo_service import memory_photo_file_path
 
 
 class MemoryPhotoController(ScopedResourceController):
@@ -19,3 +22,13 @@ class MemoryPhotoController(ScopedResourceController):
             ),
             "Memory",
         )
+
+    def delete(self, resource_id: int) -> None:
+        photo = self.get(resource_id)
+        match = re.fullmatch(
+            r"/api/v1/memory-photos/files/([0-9a-f]{32}\.(?:png|jpg|gif|webp))",
+            photo.image_path,
+        )
+        super().delete(resource_id)
+        if match is not None:
+            memory_photo_file_path(match.group(1)).unlink(missing_ok=True)

@@ -5,6 +5,7 @@ from app.routes.accommodation import accommodations
 from app.routes.admin import admin
 from app.routes.ai import ai, ai_chat
 from app.routes.ai import ai_conversations, ai_extractions, ai_messages
+from app.routes.ai import document_parser
 from app.routes.auth import auth
 from app.routes.budget import budgets
 from app.routes.budget import budget_categories
@@ -25,6 +26,7 @@ from app.routes.place import places
 from app.routes.place import place_photos, place_tips
 from app.routes.reminder import reminders
 from app.routes.saved_place import saved_places
+from app.routes.saved_place import saved_items
 from app.routes.screenshot import screenshots
 from app.routes.transport import transports
 from app.routes.trip import trips
@@ -50,6 +52,7 @@ for route_module in (
     destinations,
     places,
     saved_places,
+    saved_items,
     trips,
     itinerary,
     budgets,
@@ -67,6 +70,7 @@ for route_module in (
     ai,
     ai_conversations,
     ai_chat,
+    document_parser,
     ai_extractions,
     ai_messages,
     budget_categories,

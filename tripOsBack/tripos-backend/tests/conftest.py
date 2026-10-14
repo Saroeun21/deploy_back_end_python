@@ -42,7 +42,12 @@ def destination_id(client, auth_headers):
     response = client.post(
         "/api/v1/destinations",
         headers=auth_headers,
-        json={"name": "Japan", "country": "Japan", "country_code": "JP"},
+        json={
+            "name": "Japan",
+            "country": "Japan",
+            "country_code": "JP",
+            "average_daily_cost_usd": 125,
+        },
     )
     assert response.status_code == 201
     return response.json()["id"]

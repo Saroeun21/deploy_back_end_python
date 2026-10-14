@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+
+
 def test_create_document_uses_document_fields(client, auth_headers, trip_id):
     response = client.post(
         "/api/v1/documents",
@@ -42,7 +45,7 @@ def test_create_reminder_uses_reminder_fields(client, auth_headers, trip_id):
         json={
             "trip_id": trip_id,
             "title": "Check in to hotel",
-            "due_date": "2026-10-10T12:00:00Z",
+            "due_date": "2026-10-14T10:22:00+05:00",
             "type": "booking",
         },
     )
@@ -52,6 +55,17 @@ def test_create_reminder_uses_reminder_fields(client, auth_headers, trip_id):
     assert response.json()["user_id"]
     assert response.json()["type"] == "booking"
     assert response.json()["status"] == "pending"
+    expected_due_date = datetime(2026, 10, 14, 5, 22, tzinfo=timezone.utc)
+    assert datetime.fromisoformat(response.json()["due_date"]) == expected_due_date
+
+    listed_reminders = client.get(
+        "/api/v1/reminders",
+        headers=auth_headers,
+    )
+    assert listed_reminders.status_code == 200
+    assert datetime.fromisoformat(
+        listed_reminders.json()[0]["due_date"]
+    ) == expected_due_date
 
 
 def test_create_screenshot_uses_screenshot_fields(client, auth_headers, trip_id):
@@ -87,4 +101,3 @@ def test_create_notification_uses_notification_fields(client, auth_headers):
     assert response.status_code == 201
     assert response.json()["user_id"]
     assert response.json()["is_read"] is False
-

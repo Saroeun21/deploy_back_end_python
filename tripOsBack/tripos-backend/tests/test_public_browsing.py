@@ -6,6 +6,7 @@ def test_guests_can_browse_destinations(client, destination_id):
     assert any(destination["id"] == destination_id for destination in listed.json())
     assert detail.status_code == 200
     assert detail.json()["id"] == destination_id
+    assert detail.json()["average_daily_cost_usd"] == "125.00"
 
 
 def test_guests_can_browse_places_but_cannot_create_them(
@@ -18,6 +19,9 @@ def test_guests_can_browse_places_but_cannot_create_them(
             "destination_id": destination_id,
             "name": "Royal Palace",
             "category": "landmark",
+            "estimated_cost": 1000,
+            "admission_fee_usd": 7,
+            "estimated_visit_cost_usd": 18,
         },
     )
     place_id = created.json()["id"]
@@ -38,6 +42,8 @@ def test_guests_can_browse_places_but_cannot_create_them(
     assert any(place["id"] == place_id for place in listed.json())
     assert detail.status_code == 200
     assert detail.json()["id"] == place_id
+    assert detail.json()["admission_fee_usd"] == "7.00"
+    assert detail.json()["estimated_visit_cost_usd"] == "18.00"
     assert guest_create.status_code == 401
 
 

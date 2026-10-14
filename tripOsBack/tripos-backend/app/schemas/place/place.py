@@ -21,6 +21,11 @@ class PlaceCreate(BaseModel):
 
     description: str | None = None
 
+    image: str | None = Field(
+        default=None,
+        max_length=500
+    )
+
     address: str | None = None
 
     latitude: Decimal | None = None
@@ -29,7 +34,20 @@ class PlaceCreate(BaseModel):
 
     estimated_cost: Decimal | None = Field(
         default=None,
-        ge=0
+        ge=0,
+        description="Admission fee in the destination's local currency; zero means no admission charge.",
+    )
+
+    admission_fee_usd: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Admission fee converted to US dollars.",
+    )
+
+    estimated_visit_cost_usd: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Estimated total per-person visit spend in US dollars, including admission and typical local extras.",
     )
 
     opening_time: time | None = None

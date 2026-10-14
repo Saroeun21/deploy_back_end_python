@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import httpx
 from fastapi import HTTPException
@@ -15,7 +16,7 @@ class AIService:
             )
         self.api_key = settings.OPENAI_API_KEY
 
-    def generate_response(self, messages: list[dict[str, str]]) -> str:
+    def generate_response(self, messages: list[dict[str, Any]]) -> str:
         try:
             response = httpx.post(
                 f"{settings.OPENAI_BASE_URL.rstrip('/')}/chat/completions",

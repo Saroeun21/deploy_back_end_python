@@ -67,6 +67,50 @@ def test_create_and_list_trips(client, auth_headers, destination_id):
     assert [trip["id"] for trip in listed.json()] == [created.json()["id"]]
 
 
+def test_user_can_plan_trip_to_another_users_public_destination(
+    client, auth_headers, destination_id
+):
+    registered = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "another-traveler@example.com",
+            "password": "secure-pass-456",
+            "name": "Another Traveler",
+        },
+    )
+    assert registered.status_code == 201
+    login = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "another-traveler@example.com",
+            "password": "secure-pass-456",
+        },
+    )
+    assert login.status_code == 200
+    other_user_headers = {
+        "Authorization": f"Bearer {login.json()['access_token']}"
+    }
+
+    created = client.post(
+        "/api/v1/trips",
+        headers=other_user_headers,
+        json={
+            "destination_id": destination_id,
+            "name": "A public destination trip",
+            "start_date": "2026-10-01",
+            "end_date": "2026-10-08",
+            "currency": "JPY",
+        },
+    )
+
+    assert created.status_code == 201
+    assert created.json()["destination_id"] == destination_id
+    assert client.get("/api/v1/trips", headers=auth_headers).json() == []
+    assert client.get("/api/v1/trips", headers=other_user_headers).json() == [
+        created.json()
+    ]
+
+
 def test_create_trip_with_legacy_amount_status_and_extra_data(
     client, auth_headers, destination_id
 ):

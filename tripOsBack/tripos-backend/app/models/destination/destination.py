@@ -81,6 +81,11 @@ class Destination(Base):
         nullable=True
     )
 
+    average_daily_cost_usd: Mapped[Decimal | None] = mapped_column(
+        DECIMAL(10, 2),
+        nullable=True
+    )
+
     data: Mapped[dict] = mapped_column(
         JSON,
         default=dict

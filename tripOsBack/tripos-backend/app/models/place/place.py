@@ -54,6 +54,11 @@ class Place(Base):
         nullable=True
     )
 
+    image = Column(
+        String(500),
+        nullable=True
+    )
+
     address = Column(
         Text,
         nullable=True
@@ -70,6 +75,16 @@ class Place(Base):
     )
 
     estimated_cost = Column(
+        Numeric(10, 2),
+        nullable=True
+    )
+
+    admission_fee_usd = Column(
+        Numeric(10, 2),
+        nullable=True
+    )
+
+    estimated_visit_cost_usd = Column(
         Numeric(10, 2),
         nullable=True
     )

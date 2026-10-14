@@ -9,10 +9,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     CORS_ORIGINS: list[str] = Field(default_factory=list)
 
-    DATABASE_URL: str = (
-        "postgresql+psycopg://tripos_user:Sovan13022008@localhost:5432/TripOs"
-    )
-
+    DATABASE_URL: str = "postgresql+psycopg://tripos_user:change-me@localhost:5432/tripos_db"
     JWT_SECRET_KEY: str = "replace-this-with-a-long-random-secret"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     OPENAI_API_KEY: str | None = None

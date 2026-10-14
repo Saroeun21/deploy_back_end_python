@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from app.controllers.common.scoped_resource_controller import ScopedResourceController
 from app.models.destination.destination import Destination
 from app.models.trip.trip import Trip
@@ -22,10 +24,5 @@ class TripController(ScopedResourceController):
             self._validate_destination(fields["destination_id"])
 
     def _validate_destination(self, destination_id: int | None) -> None:
-        self.require_owned(
-            self.db.query(Destination).filter(
-                Destination.id == destination_id,
-                Destination.user_id == self.user.id,
-            ),
-            "Destination",
-        )
+        if self.db.get(Destination, destination_id) is None:
+            raise HTTPException(status_code=404, detail="Destination not found")
