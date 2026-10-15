@@ -24,6 +24,7 @@ class User(Base):
 
     ai_conversations = relationship("AIConversation", back_populates="user")
     ai_extractions = relationship("AIExtraction", back_populates="user")
+    content_reports = relationship("ContentReport", back_populates="reporter")
     documents = relationship("Document", back_populates="user")
     expenses = relationship("Expense", back_populates="user")
     expense_splits = relationship("ExpenseSplit", back_populates="user")

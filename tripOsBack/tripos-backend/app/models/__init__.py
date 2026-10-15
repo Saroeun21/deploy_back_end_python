@@ -24,6 +24,7 @@ from app.models.place.place import Place
 from app.models.place.place_photo import PlacePhoto
 from app.models.place.place_tip import PlaceTip
 from app.models.reminder.reminder import Reminder
+from app.models.report.report import ContentReport
 from app.models.saved_place.saved_place import SavedPlace
 from app.models.saved_place.saved_item import SavedItem
 from app.models.screenshot.screenshot import Screenshot
@@ -40,7 +41,8 @@ __all__ = [
     "Budget", "BudgetCategory", "Checklist", "ChecklistItem", "Destination",
     "Document", "Expense", "ExpenseSplit", "Itinerary", "ItineraryDay",
     "ItineraryItem", "Memory", "MemoryPhoto", "Notification", "PackingItem",
-    "PackingList", "Place", "PlacePhoto", "PlaceTip", "Reminder", "ResourceMixin",
+    "PackingList", "Place", "PlacePhoto", "PlaceTip", "Reminder", "ContentReport",
+    "ResourceMixin",
     "SavedItem", "SavedPlace", "Screenshot", "Transport", "Trip", "TripMember", "TripWallet",
     "User", "Wallet", "WalletTransaction",
 ]

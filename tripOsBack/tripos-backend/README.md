@@ -257,9 +257,23 @@ creates the returned trip records through their normal APIs.
 - Preparation and bookings: `/api/v1/packing`, `/api/v1/checklists`, `/api/v1/accommodations`, `/api/v1/transports`
 - Travel records: `/api/v1/documents`, `/api/v1/screenshots`, `/api/v1/reminders`, `/api/v1/notifications`, `/api/v1/memories`
 - AI request records: `/api/v1/ai/requests`
-- Admin utility: `/api/v1/admin/users/count`
+- Admin dashboard: `/api/v1/admin/dashboard`, `/api/v1/admin/users`,
+  `/api/v1/admin/users/count`, `/api/v1/admin/destinations`,
+  `/api/v1/admin/places`, `/api/v1/admin/reports`
+- User-submitted reports: `/api/v1/reports`
 
-The admin utility currently requires authentication but does not implement role-based admin authorization. Do not expose it as an admin-only feature until roles and permission checks are added. The AI endpoint stores request records; it is not yet connected to an AI provider. Document and screenshot resource endpoints currently store metadata; production file upload/download endpoints and storage policies still need to be implemented.
+Admin dashboard routes require an authenticated account whose email is listed in
+`ADMIN_EMAILS` as a comma-separated allowlist. Set this variable in `.env` before
+starting the API (or in the environment used by Docker Compose); for example,
+`ADMIN_EMAILS=admin@example.com`. There is no public endpoint for granting admin
+access. The dashboard supports paginated user, destination, place, and submitted
+report lists. Authenticated users can submit reports with `POST /api/v1/reports`;
+admins can review them with `PATCH /api/v1/admin/reports/{report_id}`.
+
+The AI endpoint stores request records; it is not yet connected to an AI
+provider. Document and screenshot resource endpoints currently store metadata;
+production file upload/download endpoints and storage policies still need to be
+implemented.
 
 ## Tests
 

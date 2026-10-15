@@ -27,7 +27,7 @@ class UserLogin(BaseModel):
 
 class UserRead(BaseModel):
     id: int
-    email: EmailStr
+    email: str
     name: str
     profile: str | None
     status: bool

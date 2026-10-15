@@ -2,6 +2,7 @@ import os
 
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["JWT_SECRET_KEY"] = "test-only-secret-key-with-more-than-32-bytes"
+os.environ["ADMIN_EMAILS"] = "admin@example.com"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -33,6 +34,23 @@ def auth_headers(client):
     response = client.post(
         "/api/v1/auth/login",
         json={"email": "traveler@example.com", "password": "secure-pass-123"},
+    )
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+@pytest.fixture
+def admin_headers(client):
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "admin@example.com",
+            "password": "secure-pass-123",
+            "full_name": "Administrator",
+        },
+    )
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "admin@example.com", "password": "secure-pass-123"},
     )
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 

@@ -1,7 +1,18 @@
 from datetime import date
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 from decimal import Decimal
+
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    page_size: int
+
 
 class ResourceCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)

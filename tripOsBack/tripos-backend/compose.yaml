@@ -21,6 +21,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-tripos_user}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-tripos_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-development-secret-change-before-deployment}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     depends_on:
       db:
         condition: service_healthy

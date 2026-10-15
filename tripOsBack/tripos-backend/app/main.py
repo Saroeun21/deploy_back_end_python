@@ -25,6 +25,7 @@ from app.routes.packing import packing_lists
 from app.routes.place import places
 from app.routes.place import place_photos, place_tips
 from app.routes.reminder import reminders
+from app.routes.report import reports
 from app.routes.saved_place import saved_places
 from app.routes.saved_place import saved_items
 from app.routes.screenshot import screenshots
@@ -65,6 +66,7 @@ for route_module in (
     documents,
     screenshots,
     reminders,
+    reports,
     notifications,
     memories,
     ai,

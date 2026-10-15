@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+psycopg://tripos_user:change-me@localhost:5432/tripos_db"
     JWT_SECRET_KEY: str = "replace-this-with-a-long-random-secret"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ADMIN_EMAILS: str = ""
     OPENAI_API_KEY: str | None = None
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
     OPENAI_MODEL: str = "gpt-4o-mini"
