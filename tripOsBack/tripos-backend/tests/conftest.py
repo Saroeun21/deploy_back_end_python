@@ -12,7 +12,15 @@ from app.main import app
 
 
 @pytest.fixture(autouse=True)
-def reset_database():
+def reset_database(monkeypatch):
+    monkeypatch.setattr(
+        "app.routes.auth.auth.send_welcome_email",
+        lambda _email, _name: "not_configured",
+    )
+    monkeypatch.setattr(
+        "app.controllers.auth.auth_controller.send_welcome_email",
+        lambda _email, _name, **_kwargs: "not_configured",
+    )
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield

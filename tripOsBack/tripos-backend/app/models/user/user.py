@@ -17,6 +17,8 @@ class User(Base):
         String(255),
         nullable=True
     )
+    avatar_filename: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    google_avatar_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     status: Mapped[bool | None] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -36,3 +38,11 @@ class User(Base):
     trips = relationship("Trip", back_populates="user")
     trip_memberships = relationship("TripMember", back_populates="user")
     wallet_transactions = relationship("WalletTransaction", back_populates="user")
+
+    @property
+    def avatar_url(self) -> str | None:
+        if self.google_avatar_url is not None:
+            return self.google_avatar_url
+        if self.avatar_filename is not None:
+            return f"/api/v1/users/avatars/{self.avatar_filename}"
+        return None

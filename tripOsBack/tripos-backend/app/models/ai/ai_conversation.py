@@ -66,5 +66,6 @@ class AIConversation(Base):
 
     messages = relationship(
         "AIMessage",
-        back_populates="conversation"
+        back_populates="conversation",
+        cascade="all, delete-orphan",
     )

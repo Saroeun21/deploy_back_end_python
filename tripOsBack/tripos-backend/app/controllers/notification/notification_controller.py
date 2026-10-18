@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException
 
 from app.controllers.common.scoped_resource_controller import ScopedResourceController
@@ -35,3 +37,17 @@ class NotificationController(ScopedResourceController):
                     status_code=422,
                     detail="Reminder does not belong to the specified trip",
                 )
+
+    def validate_update(self, resource: Notification, fields: dict) -> None:
+        if "due_date" not in fields:
+            return
+
+        new_due_date = fields["due_date"]
+        old_due_date = resource.due_date
+        if old_due_date is not None and old_due_date.tzinfo is None:
+            old_due_date = old_due_date.replace(tzinfo=timezone.utc)
+        if new_due_date is not None and new_due_date.tzinfo is None:
+            new_due_date = new_due_date.replace(tzinfo=timezone.utc)
+        if new_due_date != old_due_date:
+            fields["email_sent_at"] = None
+            fields["email_claimed_at"] = None

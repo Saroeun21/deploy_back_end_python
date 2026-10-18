@@ -23,6 +23,7 @@ class AIExtractionCreate(BaseModel):
     )
 
     status: AIExtractionStatus = AIExtractionStatus.PENDING
+    requires_human_review: bool = False
 
 
 class AIExtractionUpdate(BaseModel):
@@ -35,6 +36,7 @@ class AIExtractionUpdate(BaseModel):
     extracted_data: dict[str, Any] | None = None
 
     status: AIExtractionStatus | None = None
+    requires_human_review: bool | None = None
 
 
 class AIExtractionRead(AIExtractionCreate):

@@ -71,9 +71,137 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-4o-mini
+FIREBASE_PROJECT_ID=your-firebase-project-id
 ```
 
 The repository ignores `.env` so local credentials are not committed. Set `OPENAI_API_KEY` on the API server to enable AI assistant replies; the key is never sent to the frontend. For OpenRouter, set `OPENAI_BASE_URL=https://openrouter.ai/api/v1`, use your OpenRouter API key for `OPENAI_API_KEY`, and set `OPENAI_MODEL` to a model slug supported by OpenRouter. Restart the API server after changing its environment. If you want to create the database user with the sample credentials, run the SQL below in `psql`; otherwise use the username and password already configured in PostgreSQL:
+
+Set `FIREBASE_PROJECT_ID` to enable Google sign-in. The frontend sends Firebase ID
+tokens to `/api/v1/auth/google`; the API verifies their signature, issuer,
+audience, expiry, and verified-email claim against Firebase's public signing
+keys before creating or signing in a Komsan account. Firebase service-account
+credentials are not needed by this flow. Send the Firebase ID token (for example,
+`await user.getIdToken()`) as `id_token` or `idToken`, not a Google OAuth access
+token. The API allows up to 60 seconds of clock skew when checking token
+timestamps; keep the API host clock synchronized.
+
+Set `GOOGLE_VISION_API_KEY` on the backend to enable OCR for booking screenshots
+and PDFs. The key is used only by the API server and must not be added to a
+frontend `VITE_` variable, which would expose it in the browser bundle.
+
+To send a welcome email at account creation and a welcome-back email on every
+successful password or Google sign-in, configure `GMAIL_CLIENT_ID`,
+`GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, and `GMAIL_USER` (or
+`GMAIL_FROM_EMAIL`) for a Google OAuth client authorized to send mail with the
+Gmail API. `GMAIL_FROM_NAME` is optional.
+Both welcome and reminder emails include a clickable `Komsan | Travel planner`
+link. Set `WEBSITE_URL` to the frontend URL; it defaults to
+`http://localhost:5173` for local development. Set it to the publicly accessible
+HTTPS website URL before sending emails to users, since `localhost` links only
+work on the device running the frontend.
+The API reports whether the email was accepted, failed, or is not configured in
+registration, password-login, and Google sign-in responses. Password login
+accepts `send_welcome_email: false` to suppress the email when an account
+creation flow has already sent one. Gmail accepting a message does not guarantee
+Inbox placement; recipients may need to check Spam or configure their own Gmail
+filters. Email delivery problems do not prevent account creation or sign-in.
+Keep Gmail OAuth credentials only in the backend environment, never in the
+frontend.
+
+Pending reminders are emailed once to the saved email address on the owning
+account when they become due. A reminder completed after its due time is still
+emailed; reminders completed before their due time and cancelled reminders are
+not. For Google sign-in, this is the verified email address on the account. The
+email is a brief notification with the reminder title and due time; the
+configured Gmail mailbox is the sender. The API checks every 60 seconds, so
+delivery can be up to about one minute after the due time. Reminder and
+notification email due times are displayed in Cambodia time
+(`Asia/Phnom_Penh`, UTC+07:00); stored timestamps remain UTC.
+Reminder email uses Gmail API OAuth, independently of Firebase sign-in.
+Enable the Gmail API in Google Cloud,
+create an OAuth client, authorize the sending mailbox with the
+`https://www.googleapis.com/auth/gmail.send` scope, and configure the resulting
+client ID, client secret, refresh token, and mailbox address in the backend:
+
+```dotenv
+GMAIL_CLIENT_ID=your-oauth-client-id
+GMAIL_CLIENT_SECRET=your-oauth-client-secret
+GMAIL_REFRESH_TOKEN=your-oauth-refresh-token
+GMAIL_USER=authorized-sender@gmail.com
+GMAIL_FROM_NAME=Komsan
+```
+
+The API uses the refresh token to obtain short-lived access tokens and sends
+from that authorized mailbox. This OAuth mailbox is the sender; reminder
+notifications are addressed to each owning user's saved account email.
+`GMAIL_FROM_EMAIL` is also accepted as an alias
+for `GMAIL_USER`. The refresh token must be the actual token returned after
+granting the `gmail.send` scope; a placeholder value does not enable sending.
+A Google API key or Firebase sign-in token cannot
+replace these OAuth credentials. Keep all OAuth credentials on the backend and
+never put them in frontend `VITE_` variables. The worker remains disabled until
+all four required credentials are present and the API is restarted. Reminder
+delivery failures are retried on a later worker pass. If OAuth consent is in
+Testing mode, Google may expire refresh tokens after seven days. When using
+Docker Compose, put the settings in the Compose `.env` file as well.
+To verify a reminder in the sender's Gmail Sent folder, reauthorize the same
+OAuth client with both `https://www.googleapis.com/auth/gmail.send` and
+`https://www.googleapis.com/auth/gmail.readonly`, then replace
+`GMAIL_REFRESH_TOKEN` and restart the backend. From the backend project folder,
+run:
+
+```powershell
+python -m scripts.verify_gmail_sent --to you@example.com --subject "Reminder due: your reminder title"
+```
+
+Use the intended recipient and exact subject for the reminder being checked.
+This confirms whether the configured sending mailbox has the message in Sent;
+it cannot confirm delivery to the recipient's inbox.
+For Gmail HTTP 403 failures, check the logged Google `reason` and `message`:
+`insufficientPermissions` or `ACCESS_TOKEN_SCOPE_INSUFFICIENT` means the
+refresh token was not authorized with `gmail.send`; authorize the mailbox with
+that scope, replace the refresh token, and restart the API. `accessNotConfigured`
+means Gmail API must be enabled in the Google Cloud project used by the OAuth
+client. Workspace policy errors may require the administrator to allow the app.
+
+Every Komsan account uses its own saved email as the recipient, regardless of
+whether it signed in with a password or Google. Gmail is only the sender; the
+recipient is looked up from the reminder owner's account when delivery occurs.
+This supports different valid recipient addresses, subject to Gmail API quotas
+and the recipient provider's spam/delivery rules. Each account receives email
+for the reminders it creates; logging into a second Komsan account does not
+change or copy reminders created by the first account.
+
+For hosting, configure the Gmail OAuth values above as backend environment
+secrets and use a persistent PostgreSQL database. The reminder processor runs
+inside the API by default when `EMAIL_WORKER_ENABLED=true`, checking every
+`EMAIL_WORKER_INTERVAL_SECONDS` (default 60). If the hosting provider sleeps
+or scales API processes to zero, deploy a separate always-on worker from the
+same backend image with the command `python -m app.workers.email_worker` and
+set `EMAIL_WORKER_ENABLED=false` on the API service to avoid relying on API
+lifespan for scheduled delivery. The worker must use the same database and
+Gmail settings as the API; apply `python -m alembic upgrade head` as a deploy
+step before starting it. Set `WEBSITE_URL` to the public HTTPS frontend URL and
+configure `CORS_ORIGINS` for the frontend origin when the frontend and API use
+different origins.
+
+Notifications created through `/api/v1/notifications` can also be emailed at a
+scheduled `due_date`. Include `due_date` as an ISO 8601 timestamp when creating
+or updating a notification; leave it unset for notifications that should only
+appear in the app. Due notification emails go to the owning account's saved
+email address, are retried after delivery failures, and are sent once after
+success. Notification due times use the same Gmail OAuth settings and
+60-second worker as reminders.
+
+Alternatively, install [Ollama](https://ollama.com/download), download a model such as `llama3.2:3b` with `ollama pull llama3.2:3b`, and set these backend `.env` values to run chat locally without a provider key:
+
+```dotenv
+OPENAI_API_KEY=
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+OPENAI_MODEL=llama3.2:3b
+```
+
+Start Ollama and restart the API server after changing the configuration.
 
 ```sql
 CREATE USER tripos_user WITH PASSWORD 'change-me';
@@ -257,7 +385,8 @@ creates the returned trip records through their normal APIs.
 - Preparation and bookings: `/api/v1/packing`, `/api/v1/checklists`, `/api/v1/accommodations`, `/api/v1/transports`
 - Travel records: `/api/v1/documents`, `/api/v1/screenshots`, `/api/v1/reminders`, `/api/v1/notifications`, `/api/v1/memories`
 - AI request records: `/api/v1/ai/requests`
-- Admin dashboard: `/api/v1/admin/dashboard`, `/api/v1/admin/users`,
+- Admin dashboard: `/api/v1/admin/dashboard`,
+  `/api/v1/admin/dashboard/analytics`, `/api/v1/admin/users`,
   `/api/v1/admin/users/count`, `/api/v1/admin/destinations`,
   `/api/v1/admin/places`, `/api/v1/admin/reports`
 - User-submitted reports: `/api/v1/reports`
@@ -269,11 +398,22 @@ starting the API (or in the environment used by Docker Compose); for example,
 access. The dashboard supports paginated user, destination, place, and submitted
 report lists. Authenticated users can submit reports with `POST /api/v1/reports`;
 admins can review them with `PATCH /api/v1/admin/reports/{report_id}`.
+Dashboard analytics aggregate trip creations and itinerary items over the
+latest seven calendar months and group them by destination region. OCR category
+and human-review rates are calculated from persisted AI extraction records.
+Successful `/api/v1/ai/parse-document` requests create a completed extraction;
+documents with no recognized booking, expense, or reminder are marked as
+requiring human review. The `requires_human_review` field can also be updated
+through the AI extraction resource API.
+Admins can permanently delete another user with
+`DELETE /api/v1/admin/users/{user_id}`; associated account data is removed,
+creator ownership of destination catalog entries is cleared, and an admin
+cannot delete their own account.
 
-The AI endpoint stores request records; it is not yet connected to an AI
-provider. Document and screenshot resource endpoints currently store metadata;
-production file upload/download endpoints and storage policies still need to be
-implemented.
+The AI request endpoint stores request records; it is not yet connected to an
+AI provider. Document and screenshot resource endpoints currently store
+metadata; production file upload/download endpoints and storage policies still
+need to be implemented.
 
 ## Tests
 

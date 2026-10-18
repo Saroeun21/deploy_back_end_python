@@ -30,3 +30,33 @@ def test_create_itinerary_with_dates_and_details(client, auth_headers):
         "category": "Travel",
         "spent_on": "2026-10-10",
     }
+
+
+def test_create_itinerary_day_and_item(client, auth_headers, trip_id):
+    day = client.post(
+        "/api/v1/itinerary-days",
+        headers=auth_headers,
+        json={
+            "trip_id": trip_id,
+            "day_number": 1,
+            "date": "2026-10-16",
+        },
+    )
+
+    assert day.status_code == 201
+    assert day.json()["id"] > 0
+
+    item = client.post(
+        "/api/v1/itinerary-items",
+        headers=auth_headers,
+        json={
+            "itinerary_day_id": day.json()["id"],
+            "title": "Visit the Grand Palace",
+            "type": "activity",
+            "order_index": 0,
+        },
+    )
+
+    assert item.status_code == 201
+    assert item.json()["id"] > 0
+    assert item.json()["itinerary_day_id"] == day.json()["id"]

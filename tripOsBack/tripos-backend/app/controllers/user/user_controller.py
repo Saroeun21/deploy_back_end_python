@@ -34,17 +34,13 @@ class UserController:
             raise ValueError("User is not authenticated")
         return self.user
 
-    def update_profile(
-        self,
-        name: str | None = None,
-        profile: str | None = None,
-    ) -> User:
+    def update_profile(self, data: dict[str, str | None]) -> User:
         db = self._require_db()
         user = self.get_current_user()
-        if name is not None:
-            user.name = name
-        if profile is not None:
-            user.profile = profile
+        if "name" in data:
+            user.name = data["name"] or ""
+        if "profile" in data:
+            user.profile = data["profile"]
         db.commit()
         db.refresh(user)
         return user

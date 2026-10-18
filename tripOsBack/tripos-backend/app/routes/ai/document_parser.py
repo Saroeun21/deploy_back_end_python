@@ -1,4 +1,3 @@
-import base64
 import json
 from typing import Any
 
@@ -8,9 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.models.ai.ai_extraction import AIExtraction, AIExtractionStatus
 from app.models.trip.trip import Trip
 from app.models.user.user import User
 from app.services.ai_service import AIService
+from app.services.google_vision_service import extract_document_text
 
 router = APIRouter(prefix="/api/v1/ai", tags=["AI documents"])
 
@@ -23,18 +24,9 @@ IMAGE_TYPES = {
 }
 
 
-def _image_content(file_bytes: bytes, content_type: str) -> list[dict[str, Any]]:
+def _document_images(file_bytes: bytes, content_type: str) -> list[bytes]:
     if content_type in IMAGE_TYPES:
-        encoded = base64.b64encode(file_bytes).decode("ascii")
-        return [
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:{content_type};base64,{encoded}",
-                    "detail": "high",
-                },
-            }
-        ]
+        return [file_bytes]
 
     if content_type != "application/pdf":
         raise HTTPException(
@@ -51,23 +43,14 @@ def _image_content(file_bytes: bytes, content_type: str) -> list[dict[str, Any]]
                     status_code=422,
                     detail=f"PDF files can contain at most {MAX_PDF_PAGES} pages.",
                 )
-            image_parts = []
+            images = []
             for page in document:
                 pixmap = page.get_pixmap(
                     matrix=pymupdf.Matrix(1.5, 1.5),
                     alpha=False,
                 )
-                encoded = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
-                image_parts.append(
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{encoded}",
-                            "detail": "high",
-                        },
-                    }
-                )
-            return image_parts
+                images.append(pixmap.tobytes("png"))
+            return images
     except pymupdf.FileDataError as error:
         raise HTTPException(
             status_code=422,
@@ -102,6 +85,24 @@ def _parse_json_response(content: str) -> dict[str, Any]:
     return parsed
 
 
+def _get_extraction_type(parsed: dict[str, Any], document_text: str) -> str:
+    booking = parsed.get("booking")
+    booking_kind = booking.get("kind", "").casefold() if isinstance(booking, dict) else ""
+    text = document_text.casefold()
+
+    if booking_kind == "flight":
+        return "flight_boarding_pass"
+    if booking_kind in {"stay", "hotel", "accommodation"}:
+        return "hotel_booking"
+    if any(word in text for word in ("ferry", "transit", "rail pass", "island pass", "train ticket")):
+        return "transit_pass"
+    if parsed.get("expense") is not None:
+        return "expense_receipt"
+    if booking is not None:
+        return "travel_booking"
+    return "other"
+
+
 @router.post("/parse-document")
 async def parse_document(
     trip_id: int = Form(...),
@@ -126,7 +127,8 @@ async def parse_document(
         )
 
     content_type = (file.content_type or "").lower()
-    image_parts = _image_content(file_bytes, content_type)
+    document_images = _document_images(file_bytes, content_type)
+    document_text = extract_document_text(document_images)
     prompt = (
         "Read this travel booking, ticket, or receipt and return only a JSON object "
         "with exactly these keys: booking, expense, reminder. Use null for any item "
@@ -135,13 +137,28 @@ async def parse_document(
         "number and cost. An expense should have description, a positive numeric amount, "
         "and currency when visible. A reminder should have title, ISO-8601 due_date, "
         "and an optional description. Do not guess missing dates, prices, or identifiers."
+        f"\n\nOCR text from the uploaded document:\n{document_text}"
     )
     response = AIService().generate_response(
         [
             {
                 "role": "user",
-                "content": [{"type": "text", "text": prompt}, *image_parts],
+                "content": prompt,
             }
         ]
     )
-    return {"parsed": _parse_json_response(response)}
+    parsed = _parse_json_response(response)
+    db.add(
+        AIExtraction(
+            user_id=current_user.id,
+            trip_id=trip.id,
+            type=_get_extraction_type(parsed, document_text),
+            extracted_data=parsed,
+            status=AIExtractionStatus.COMPLETED,
+            requires_human_review=not any(
+                parsed.get(key) is not None for key in ("booking", "expense", "reminder")
+            ),
+        )
+    )
+    db.commit()
+    return {"parsed": parsed}

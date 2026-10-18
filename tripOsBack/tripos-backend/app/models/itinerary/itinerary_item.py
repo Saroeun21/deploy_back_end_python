@@ -36,9 +36,9 @@ class ItineraryItem(Base):
     __tablename__ = "itinerary_items"
 
     id = Column(
-        BigInteger,
+        BigInteger().with_variant(Integer, "sqlite"),
         primary_key=True,
-        index=True
+        index=True,
     )
 
     itinerary_day_id = Column(

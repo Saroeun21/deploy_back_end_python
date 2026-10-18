@@ -87,6 +87,22 @@ class Reminder(Base):
         default=ReminderStatus.PENDING
     )
 
+    completed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    email_sent_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    email_claimed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

@@ -18,10 +18,21 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
+      WEBSITE_URL: ${WEBSITE_URL:-http://localhost:5173}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-tripos_user}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-tripos_db}
+      CORS_ORIGINS: ${CORS_ORIGINS:-[]}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-development-secret-change-before-deployment}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID:-}
+      GMAIL_CLIENT_SECRET: ${GMAIL_CLIENT_SECRET:-}
+      GMAIL_REFRESH_TOKEN: ${GMAIL_REFRESH_TOKEN:-}
+      GMAIL_USER: ${GMAIL_USER:-}
+      GMAIL_FROM_EMAIL: ${GMAIL_FROM_EMAIL:-}
+      GMAIL_FROM_NAME: ${GMAIL_FROM_NAME:-Komsan}
+      EMAIL_WORKER_ENABLED: ${EMAIL_WORKER_ENABLED:-true}
+      EMAIL_WORKER_INTERVAL_SECONDS: ${EMAIL_WORKER_INTERVAL_SECONDS:-60}
     depends_on:
       db:
         condition: service_healthy

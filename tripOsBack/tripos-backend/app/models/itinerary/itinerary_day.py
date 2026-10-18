@@ -9,7 +9,11 @@ from app.core.database import Base
 class ItineraryDay(Base):
     __tablename__ = "itinerary_days"
 
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        index=True,
+    )
 
     trip_id = Column(
         BigInteger,

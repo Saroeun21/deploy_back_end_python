@@ -31,6 +31,11 @@ def test_ai_chat_saves_user_and_assistant_messages(
                 "content": "Plan a weekend in Tokyo.",
             }
             assert messages[0]["role"] == "system"
+            assert "You are Komsan" in messages[0]["content"]
+            assert "add_itinerary_item" in messages[0]["content"]
+            assert "valid JSON only" in messages[0]["content"]
+            assert "greetings, ordinary questions" in messages[0]["content"]
+            assert "never return an empty message" in messages[0]["content"]
             return "Here is a relaxed two-day Tokyo plan."
 
     monkeypatch.setattr(
@@ -57,6 +62,81 @@ def test_ai_chat_saves_user_and_assistant_messages(
     )
     assert stored_messages.status_code == 200
     assert len(stored_messages.json()) == 2
+
+    deleted = client.delete(
+        f"/api/v1/ai/conversations/{conversation.json()['id']}",
+        headers=auth_headers,
+    )
+
+    assert deleted.status_code == 204
+    remaining_messages = client.get(
+        "/api/v1/ai/messages",
+        headers=auth_headers,
+    )
+    assert remaining_messages.status_code == 200
+    assert remaining_messages.json() == []
+
+
+def test_ai_chat_reports_missing_provider_configuration(
+    client,
+    auth_headers,
+    monkeypatch,
+):
+    user = client.get("/api/v1/users/me", headers=auth_headers)
+    conversation = client.post(
+        "/api/v1/ai/conversations",
+        headers=auth_headers,
+        json={"user_id": user.json()["id"], "title": "Travel question"},
+    )
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+    monkeypatch.setattr(
+        settings,
+        "OPENAI_BASE_URL",
+        "https://api.openai.com/v1",
+    )
+
+    response = client.post(
+        f"/api/v1/ai/conversations/{conversation.json()['id']}/messages",
+        headers=auth_headers,
+        json={"message": "What should I pack?"},
+    )
+
+    assert response.status_code == 503
+    assert "Set OPENAI_API_KEY" in response.json()["detail"]
+    stored_messages = client.get("/api/v1/ai/messages", headers=auth_headers)
+    assert stored_messages.status_code == 200
+    assert stored_messages.json() == []
+
+
+def test_ai_service_allows_local_provider_without_api_key(monkeypatch):
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+    monkeypatch.setattr(
+        settings,
+        "OPENAI_BASE_URL",
+        "http://127.0.0.1:11434/v1",
+    )
+    response = httpx.Response(
+        200,
+        json={"choices": [{"message": {"content": "Hello back."}}]},
+        request=httpx.Request(
+            "POST",
+            "http://127.0.0.1:11434/v1/chat/completions",
+        ),
+    )
+    requested = {}
+
+    def fake_post(url, **kwargs):
+        requested["url"] = url
+        requested["kwargs"] = kwargs
+        return response
+
+    monkeypatch.setattr("app.services.ai_service.httpx.post", fake_post)
+
+    result = AIService().generate_response([{"role": "user", "content": "Hello"}])
+
+    assert result == "Hello back."
+    assert requested["url"] == "http://127.0.0.1:11434/v1/chat/completions"
+    assert requested["kwargs"]["headers"] == {}
 
 
 def test_ai_service_uses_configured_provider_base_url(monkeypatch):

@@ -2,6 +2,9 @@ import json
 
 import pymupdf
 
+from app.core.database import SessionLocal
+from app.models.ai.ai_extraction import AIExtraction
+
 
 def create_trip(client, auth_headers, destination_id):
     response = client.post(
@@ -45,11 +48,16 @@ def test_document_parser_returns_structured_results(
     class FakeAIService:
         def generate_response(self, messages):
             content = messages[0]["content"]
-            assert content[0]["type"] == "text"
-            assert content[1]["type"] == "image_url"
+            assert content.startswith("Read this travel booking")
+            assert "OCR text from the uploaded document:" in content
+            assert "Flight to Osaka" in content
             return json.dumps(parsed_document)
 
     monkeypatch.setattr("app.routes.ai.document_parser.AIService", FakeAIService)
+    monkeypatch.setattr(
+        "app.routes.ai.document_parser.extract_document_text",
+        lambda images: "Flight to Osaka",
+    )
     response = client.post(
         "/api/v1/ai/parse-document",
         headers=auth_headers,
@@ -59,6 +67,19 @@ def test_document_parser_returns_structured_results(
 
     assert response.status_code == 200, response.text
     assert response.json() == {"parsed": parsed_document}
+    with SessionLocal() as db:
+        extraction = db.query(AIExtraction).filter_by(trip_id=trip_id).one()
+        extraction_id = extraction.id
+        assert extraction.type == "flight_boarding_pass"
+        assert extraction.requires_human_review is False
+        assert extraction.extracted_data == parsed_document
+    review_response = client.patch(
+        f"/api/v1/ai/extractions/{extraction_id}",
+        headers=auth_headers,
+        json={"requires_human_review": True},
+    )
+    assert review_response.status_code == 200, review_response.text
+    assert review_response.json()["requires_human_review"] is True
 
 
 def test_document_parser_requires_authentication(client):
@@ -127,14 +148,15 @@ def test_document_parser_renders_pdf_pages_for_vision(
     class FakeAIService:
         def generate_response(self, messages):
             content = messages[0]["content"]
-            assert content[0]["type"] == "text"
-            assert content[1]["type"] == "image_url"
-            assert content[1]["image_url"]["url"].startswith(
-                "data:image/png;base64,"
-            )
+            assert content.startswith("Read this travel booking")
+            assert "OCR text from the uploaded document:\nFlight ticket" in content
             return '{"booking": null, "expense": null, "reminder": null}'
 
     monkeypatch.setattr("app.routes.ai.document_parser.AIService", FakeAIService)
+    monkeypatch.setattr(
+        "app.routes.ai.document_parser.extract_document_text",
+        lambda images: "Flight ticket",
+    )
     response = client.post(
         "/api/v1/ai/parse-document",
         headers=auth_headers,
@@ -144,3 +166,6 @@ def test_document_parser_renders_pdf_pages_for_vision(
 
     assert response.status_code == 200, response.text
     assert response.json()["parsed"]["booking"] is None
+    with SessionLocal() as db:
+        extraction = db.query(AIExtraction).filter_by(trip_id=trip_id).one()
+        assert extraction.requires_human_review is True

@@ -3,12 +3,15 @@ from enum import Enum
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Column,
     DateTime,
     Enum as SQLEnum,
     ForeignKey,
+    Integer,
     JSON,
     String,
+    false,
 )
 from sqlalchemy.orm import relationship
 
@@ -26,7 +29,7 @@ class AIExtraction(Base):
     __tablename__ = "ai_extractions"
 
     id = Column(
-        BigInteger,
+        BigInteger().with_variant(Integer, "sqlite"),
         primary_key=True,
         index=True
     )
@@ -75,6 +78,13 @@ class AIExtraction(Base):
             name="ai_extraction_status"
         ),
         nullable=False
+    )
+
+    requires_human_review = Column(
+        Boolean,
+        default=False,
+        server_default=false(),
+        nullable=False,
     )
 
     created_at = Column(

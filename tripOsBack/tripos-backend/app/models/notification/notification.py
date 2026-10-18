@@ -60,6 +60,22 @@ class Notification(Base):
         nullable=False
     )
 
+    due_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    email_sent_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    email_claimed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
     is_read = Column(
         Boolean,
         nullable=False,

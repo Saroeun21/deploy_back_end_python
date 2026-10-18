@@ -1,3 +1,7 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -36,9 +40,40 @@ from app.routes.user import users
 from app.routes.wallet import wallet
 from app.routes.wallet import wallet_transactions
 from app.core.config import settings
+from app.services.email_worker import run_email_worker
+from app.services.reminder_email_service import (
+    missing_reminder_email_settings,
+    reminder_email_is_configured,
+)
+
+logger = logging.getLogger(__name__)
 
 
-app = FastAPI(title=settings.APP_NAME)
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    worker = None
+    if not settings.EMAIL_WORKER_ENABLED:
+        logger.info(
+            "Email worker is disabled in the API process; run "
+            "'python -m app.workers.email_worker' as a persistent service."
+        )
+    elif reminder_email_is_configured():
+        worker = asyncio.create_task(run_email_worker())
+    else:
+        logger.warning(
+            "Reminder email worker is disabled; missing Gmail settings: %s.",
+            ", ".join(missing_reminder_email_settings()),
+        )
+    try:
+        yield
+    finally:
+        if worker is not None:
+            worker.cancel()
+            with suppress(asyncio.CancelledError):
+                await worker
+
+
+app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,

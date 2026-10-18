@@ -1,5 +1,6 @@
 import json
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 from fastapi import HTTPException
@@ -9,18 +10,31 @@ from app.core.config import settings
 
 class AIService:
     def __init__(self):
-        if not settings.OPENAI_API_KEY:
+        self.api_key = settings.OPENAI_API_KEY
+        if not self.api_key and not self._uses_local_provider():
             raise HTTPException(
                 status_code=503,
-                detail="AI chat is not configured. Set OPENAI_API_KEY on the API server.",
+                detail=(
+                    "AI chat is not configured. Set OPENAI_API_KEY or configure "
+                    "a local OpenAI-compatible provider on the API server."
+                ),
             )
-        self.api_key = settings.OPENAI_API_KEY
+
+    @staticmethod
+    def _uses_local_provider() -> bool:
+        hostname = urlsplit(settings.OPENAI_BASE_URL).hostname
+        return hostname in {"localhost", "127.0.0.1", "::1"}
 
     def generate_response(self, messages: list[dict[str, Any]]) -> str:
+        headers = (
+            {"Authorization": f"Bearer {self.api_key}"}
+            if self.api_key
+            else {}
+        )
         try:
             response = httpx.post(
                 f"{settings.OPENAI_BASE_URL.rstrip('/')}/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
+                headers=headers,
                 json={"model": settings.OPENAI_MODEL, "messages": messages},
                 timeout=60,
             )

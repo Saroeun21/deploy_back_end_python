@@ -24,9 +24,9 @@ class Destination(Base):
         index=True
     )
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"),
-        nullable=False,
+        nullable=True,
         index=True
     )
 
