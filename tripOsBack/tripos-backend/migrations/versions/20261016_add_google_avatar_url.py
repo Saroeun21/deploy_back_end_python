@@ -1,7 +1,7 @@
 """Store Google account avatar URLs.
 
 Revision ID: 20261016_google_avatar_url
-Revises: 20261016_itinerary_sqlite_autoincrement
+Revises: 20261016_itin_autoinc
 Create Date: 2026-10-16
 """
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 revision: str = "20261016_google_avatar_url"
-down_revision: Union[str, None] = "20261016_itinerary_sqlite_autoincrement"
+down_revision: Union[str, None] = "20261016_itin_autoinc"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

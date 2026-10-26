@@ -10,7 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "20261017_notification_email_delivery"
+revision: str = "20261017_notif_email"
 down_revision: Union[str, None] = "20261017_reminder_completed_at"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
