@@ -7,8 +7,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     APP_NAME: str = "TripOS API"
     API_V1_PREFIX: str = "/api/v1"
-    CORS_ORIGINS: list[str] = Field(default_factory=list)
-    WEBSITE_URL: str = "http://localhost:5173"
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "https://deoloy-front-end-python.vercel.app",
+    ]
+    WEBSITE_URL: list[str] = [
+        "http://localhost:5173",
+        "https://deoloy-front-end-python.vercel.app",
+    ]
 
     DATABASE_URL: str = "postgresql+psycopg://tripos_user:change-me@localhost:5432/tripos_db"
     JWT_SECRET_KEY: str = "replace-this-with-a-long-random-secret"

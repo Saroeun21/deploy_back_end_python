@@ -2,7 +2,7 @@ def test_local_frontend_can_preflight_login(client):
     response = client.options(
         "/api/v1/auth/login",
         headers={
-            "Origin": "http://localhost:5173",
+            "Origin": ["http://localhost:5173", "https://deoloy-front-end-python.vercel.app/"],
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": "content-type",
         },
