@@ -425,6 +425,20 @@ python -m pytest
 
 Tests override the configured database with in-memory SQLite and reset the tables per test. They do not require a running PostgreSQL server and do not test PostgreSQL-specific behavior or migrations.
 
+## Deploy to Render
+
+The repository-root `render.yaml` defines the Docker web service. In Render, choose **New +** > **Blueprint**, connect this repository, and deploy the Blueprint. It builds from `tripOsBack/tripos-backend/Dockerfile`, applies Alembic migrations at startup, and serves the health check at `/health`.
+
+Before deploying, create a Render PostgreSQL database in the same region as the web service. Set `DATABASE_URL` on the web service to the database's **Internal Database URL**. Set `CORS_ORIGINS` to a JSON array containing your frontend's origin, for example:
+
+```text
+["https://your-frontend.example.com"]
+```
+
+Render generates `JWT_SECRET_KEY` for the service. Set `OPENAI_API_KEY` only if you use the AI features. After deployment, verify the service at `https://<your-service>.onrender.com/health`.
+
+The free web service has an ephemeral filesystem. Uploaded trip covers and memory photos stored under `uploads/` can disappear when the service restarts or redeploys. Use persistent file storage for production uploads; a Render persistent disk requires a paid service plan.
+
 ## Before deployment
 
 - Set a unique, strong `JWT_SECRET_KEY` and keep it secret.
