@@ -98,7 +98,8 @@ Both welcome and reminder emails include a clickable `Komsan | Travel planner`
 link. Set `WEBSITE_URL` to the frontend URL; it defaults to
 `http://localhost:5173` for local development. Set it to the publicly accessible
 HTTPS website URL before sending emails to users, since `localhost` links only
-work on the device running the frontend.
+work on the device running the frontend. On Render, set
+`WEBSITE_URL=https://deoloy-front-end-python.vercel.app`.
 The API reports whether the email was accepted, failed, or is not configured in
 registration, password-login, and Google sign-in responses. Password login
 accepts `send_welcome_email: false` to suppress the email when an account
@@ -436,6 +437,31 @@ Before deploying, create a Render PostgreSQL database in the same region as the 
 ```
 
 Render generates `JWT_SECRET_KEY` for the service. Set `OPENAI_API_KEY` only if you use the AI features. After deployment, verify the service at `https://<your-service>.onrender.com/health`.
+
+### Copy local SQLite data to Render
+
+Alembic creates or updates the schema; it does not copy records from a local
+SQLite database. To migrate existing local records, use Render's **External
+Database URL** from your local machine. Run these commands from the backend
+project directory in PowerShell:
+
+```powershell
+$env:TARGET_DATABASE_URL = Read-Host "Paste Render's External Database URL"
+python -m scripts.migrate_sqlite_to_render --source .\tripos_dev.db
+```
+
+Review the dry-run output, then copy records with:
+
+```powershell
+python -m scripts.migrate_sqlite_to_render --source .\tripos_dev.db --apply
+Remove-Item Env:TARGET_DATABASE_URL
+```
+
+The command preserves primary keys and copies all non-empty tables in
+foreign-key order. It never deletes data and stops if a destination table
+already contains records, so do not clear production tables to make it run.
+The external database URL is read from the process environment and is not
+written to the repository.
 
 The free web service has an ephemeral filesystem. Uploaded trip covers and memory photos stored under `uploads/` can disappear when the service restarts or redeploys. Use persistent file storage for production uploads; a Render persistent disk requires a paid service plan.
 

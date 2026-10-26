@@ -11,10 +11,7 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "https://deoloy-front-end-python.vercel.app",
     ]
-    WEBSITE_URL: list[str] = [
-        "http://localhost:5173",
-        "https://deoloy-front-end-python.vercel.app",
-    ]
+    WEBSITE_URL: str = "http://localhost:5173"
 
     DATABASE_URL: str = "postgresql+psycopg://tripos_user:change-me@localhost:5432/tripos_db"
     JWT_SECRET_KEY: str = "replace-this-with-a-long-random-secret"
